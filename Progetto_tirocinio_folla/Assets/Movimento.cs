@@ -3,33 +3,55 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 
-public class Movimento : MonoBehaviour
+public class UMAController : MonoBehaviour
 {
-    //definisco variabile privata di tipo NavMeshAgent chiamata agent, componente che gestirà il movimentodel personaggio
-    private NavMeshAgent agent;
-    // Start is called before the first frame update
+    private NavMeshAgent navMeshAgent;
+    private Animator animator;
+    private bool isMoving = false;
+
     void Start()
     {
-        //ottengo il componente NavMeshAgent associato al GameObject
-        agent = GetComponent<NavMeshAgent>();   
+        // Ottenere i riferimenti al NavMeshAgent e all'Animator
+        navMeshAgent = GetComponent<NavMeshAgent>();
+        animator = GetComponent<Animator>();
+
+        // Imposta il parametro "Speed" a 0 all'avvio
+        animator.SetFloat("Speed", 0);
     }
 
-    // Update is called once per frame
     void Update()
     {
-        //controllo che l'utente abbia cliccato con il tasto sinistro del mouse
-        if (Input.GetMouseButtonDown(0)) 
-        { 
-            //crea un raggio dal punto in cui l'utente ha cliccato sullo schermo nella direzione della telecamera
+        // Se viene cliccato il tasto sinistro del mouse
+        if (Input.GetMouseButtonDown(0))
+        {
+            // Lanciare un raggio dal punto in cui è stato cliccato
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             RaycastHit hit;
 
-            // lancia il raggio e controlla se ha colpito qualcosa
-            if (Physics.Raycast(ray, out hit))
+            // Se il raggio colpisce un oggetto sulla NavMesh
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, NavMesh.AllAreas))
             {
-                // se ha colpito qualcosa si imposta il punto di destinazione del NavMeshAgent alla posizione colpita dal raggio
-                agent.SetDestination(hit.point);
+                // Imposta la destinazione per il NavMeshAgent
+                navMeshAgent.SetDestination(hit.point);
+                isMoving = true; // Imposta il flag per indicare che l'UMA sta per muoversi
+
+                // Attiva l'animazione di corsa
+                animator.SetFloat("Speed", 1);
             }
+        }
+
+        // Se l'UMA è in movimento e ha raggiunto la destinazione
+        if (isMoving && !navMeshAgent.pathPending && navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance)
+        {
+            // Se ha raggiunto la destinazione, ferma l'UMA e reimposta il flag
+            animator.SetFloat("Speed", 0);
+            isMoving = false;
         }
     }
 }
+
+
+
+
+
+
