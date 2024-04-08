@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using UMA.CharacterSystem;
 using UnityEngine;
+using UnityEngine.AI;
 
 namespace UMA
 {
@@ -16,14 +17,18 @@ namespace UMA
 		public float GridDistance = 1.5f;
 		public float RandomOffset = 0.0f;
 		public bool RandomRotation;
-		public string NameBase = "Pat";
+		public string NameBase = "Uma";
 		public UMARandomAvatarEvent RandomAvatarGenerated;
 
 		private DynamicCharacterAvatar RandomAvatar;
 		private GameObject character;
 
-		// Use this for initialization
-		void Start()
+        // Use this for initialization
+        void Start()
+        {
+			GenerateAvatar();
+        }
+        public void GenerateAvatar()
 		{
 			if (ParentObject == null)
 			{
@@ -83,13 +88,19 @@ namespace UMA
 				}
 				RandomAvatar = go.GetComponent<DynamicCharacterAvatar>();
 				go.name = Name;
-				// Event for possible networking here
-				if (RandomAvatarGenerated != null)
+
+                // Event for possible networking here
+                if (RandomAvatarGenerated != null)
 				{
 					RandomAvatarGenerated.Invoke(gameObject, go);
 				}
-			}
-			Randomize(RandomAvatar);
+
+                // Aggiungi il componente NavMeshAgent e assicurati che sia attivo
+                NavMeshAgent navMeshAgent = go.AddComponent<NavMeshAgent>();
+                navMeshAgent.enabled = true;
+            }
+
+            Randomize(RandomAvatar);
 			RandomAvatar.BuildCharacter(!RandomAvatar.BundleCheck);
 		}
 
