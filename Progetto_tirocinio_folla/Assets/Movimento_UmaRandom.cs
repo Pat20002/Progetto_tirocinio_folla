@@ -44,6 +44,9 @@ public class ScriptRandomMovimento : MonoBehaviour
 
                     // Imposta il parametro "Speed" dell'Animator a 1 per farlo correre
                     animator.SetFloat("Speed", 1);
+
+                    // Imposta il parametro in animator "Culling Mode" per ognuno degli UMA a Cull Update Transform
+                    animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
                 }
             }
         }
