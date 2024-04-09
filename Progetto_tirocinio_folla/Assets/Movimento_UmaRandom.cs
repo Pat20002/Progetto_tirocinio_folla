@@ -7,9 +7,6 @@ using UnityEngine.AI;
 public class ScriptRandomMovimento : MonoBehaviour
 {
     public UMARandomAvatar umaRandomAvatar; // Riferimento a UMARandomAvatar
-    public AnimatorOverrideController animatorOverrideController; // Controller dell'animatore
-    public NavMeshAgent navMeshAgentPrefab; // Prefab del NavMeshAgent
-    public Animator animatorPrefab; // Prefab dell'Animator
     private NavMeshAgent navMeshAgent;
     private Animator animator;
 
