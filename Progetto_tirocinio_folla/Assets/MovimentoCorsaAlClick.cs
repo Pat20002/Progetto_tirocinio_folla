@@ -11,6 +11,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
     public UMARandomAvatar umaRandomAvatar; // Riferimento a UMARandomAvatar
     private bool isRunning = false; // Flag per controllare se gli UMAs stanno correndo
     private float modificaDest = 15f;
+    
 
     void Start()
     {
@@ -27,8 +28,8 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                 navMeshAgent.speed = 2.2f;
                 navMeshAgent.acceleration = 1f;
                 navMeshAgent.angularSpeed = 180f;
-                navMeshAgent.radius = 0.7f;
-                navMeshAgent.stoppingDistance = 2f;
+                navMeshAgent.radius = 0.2f;
+                navMeshAgent.stoppingDistance = 1f;
 
                 Animator animator = navMeshAgent.GetComponent<Animator>();
                 animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
@@ -55,7 +56,8 @@ public class MovimentoCorsaAlClick : MonoBehaviour
 
                 // Ottieni le coordinate del punto colpito
                 Vector3 clickedPoint = hit.point;
-             
+                Debug.Log("Coordinate del punto colpito: " + clickedPoint);
+
                 // Itera attraverso ogni UMA generato
                 foreach (Transform child in umaRandomAvatar.transform)
                 {
@@ -69,75 +71,91 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                     // Ottieni le coordinate dell'UMA
                     Vector3 umaPosition = child.position;
 
-                    // Se clicco in alto, gli uma andranno in basso
-                    if (clickedPoint.z >= umaPosition.z)
+                    // Calcola la distanza tra l'UMA e il punto cliccato
+                    float distance = Vector3.Distance(umaPosition, clickedPoint);
+
+                    // Definisci il raggio dell'area
+                    float radius = 1.5f;
+
+                    if (distance <= radius)
                     {
-                        if(clickedPoint.x < umaPosition.x)
-                        {
-                            animator.SetTrigger("RunTrigger");
-                            // Calcola la nuova destinazione
-                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }else
-                        {
-                            animator.SetTrigger("RunTrigger");
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
+                        navMeshAgent.speed = 0f;
+                        animator.SetTrigger("DeathTrigger");
+                        animator.SetBool("IsDeath",true);
                     }
-                    // se clicco in basso, gli uma andranno in alto
-                    if (clickedPoint.z <= umaPosition.z)
+                    else
                     {
-                        if (clickedPoint.x < umaPosition.x)
+                        // Se clicco in alto, gli uma andranno in basso
+                        if (clickedPoint.z >= umaPosition.z )
                         {
-                            animator.SetTrigger("RunTrigger");
-                            // Calcola la nuova destinazione
-                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
+                            if (clickedPoint.x < umaPosition.x)
+                            {
+                                animator.SetTrigger("RunTrigger");
+                                // Calcola la nuova destinazione
+                                Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                                navMeshAgent.SetDestination(newDestination);
+                            }
+                            else
+                            {
+                                animator.SetTrigger("RunTrigger");
+                                // Calcola la nuova destinazione 
+                                Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                                navMeshAgent.SetDestination(newDestination);
+                            }
                         }
-                        else
+                        // se clicco in basso, gli uma andranno in alto
+                        if (clickedPoint.z <= umaPosition.z)
                         {
-                            animator.SetTrigger("RunTrigger");
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
+                            if (clickedPoint.x < umaPosition.x)
+                            {
+                                animator.SetTrigger("RunTrigger");
+                                // Calcola la nuova destinazione
+                                Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                                navMeshAgent.SetDestination(newDestination);
+                            }
+                            else
+                            {
+                                animator.SetTrigger("RunTrigger");
+                                // Calcola la nuova destinazione 
+                                Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                                navMeshAgent.SetDestination(newDestination);
+                            }
                         }
-                    }
-                    // se clicco a destra, gli uma andranno a sinistra
-                    if (clickedPoint.x >= umaPosition.x)
-                    {
-                        if (clickedPoint.z < umaPosition.z)
+                        // se clicco a destra, gli uma andranno a sinistra
+                        if (clickedPoint.x >= umaPosition.x)
                         {
-                            animator.SetTrigger("RunTrigger");
-                            // Calcola la nuova destinazione    
-                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
+                            if (clickedPoint.z < umaPosition.z)
+                            {
+                                animator.SetTrigger("RunTrigger");
+                                // Calcola la nuova destinazione    
+                                Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                                navMeshAgent.SetDestination(newDestination);
+                            }
+                            else
+                            {
+                                animator.SetTrigger("RunTrigger");
+                                // Calcola la nuova destinazione 
+                                Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                                navMeshAgent.SetDestination(newDestination);
+                            }
                         }
-                        else
+                        //se clicco a sinistra, gli uma andranno a destra 
+                        if (clickedPoint.x <= umaPosition.x)
                         {
-                            animator.SetTrigger("RunTrigger");
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
-                    }
-                    //se clicco a sinistra, gli uma andranno a destra 
-                    if (clickedPoint.x <= umaPosition.x)
-                    {
-                        if (clickedPoint.z < umaPosition.z)
-                        {
-                            animator.SetTrigger("RunTrigger");
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
-                        else
-                        {
-                            animator.SetTrigger("RunTrigger");
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
+                            if (clickedPoint.z < umaPosition.z)
+                            {
+                                animator.SetTrigger("RunTrigger");
+                                // Calcola la nuova destinazione 
+                                Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                                navMeshAgent.SetDestination(newDestination);
+                            }
+                            else
+                            {
+                                animator.SetTrigger("RunTrigger");
+                                // Calcola la nuova destinazione 
+                                Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                                navMeshAgent.SetDestination(newDestination);
+                            }
                         }
                     }
                 }
@@ -151,9 +169,9 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             Animator animator = navMeshAgent.GetComponent<Animator>();
 
             // Controlla se l'UMA ha raggiunto la destinazione
-            if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance < 2f)
+            if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance < 1f)
             {
-                animator.SetTrigger("IdleTrigger"); // Assicurati di avere un trigger "IdleTrigger" nell'animator per far sì che l'UMA passi allo stato di riposo
+                animator.SetTrigger("IdleTrigger");
             }
         }
     }
