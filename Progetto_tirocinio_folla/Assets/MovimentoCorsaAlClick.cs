@@ -3,80 +3,170 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.AI;
 using UMA;
+using Unity.VisualScripting;
+using UnityEngine.UIElements;
 
-public class CamminataCasuale : MonoBehaviour
+public class MovimentoCorsaAlClick : MonoBehaviour
 {
     public UMARandomAvatar umaRandomAvatar; // Riferimento a UMARandomAvatar
-    public Collider boundaryCollider; // Collider sferico che delimita lo spazio navigabile per gli UMAs
-    public float avoidanceRadius = 2f; // Raggio di evitamento per la collisione tra UMAs
-    public float changeDirectionInterval = 5f; // Intervallo di tempo dopo il quale cambia la direzione
+    private bool isRunning = false; // Flag per controllare se gli UMAs stanno correndo
+    private float modificaDest = 15f;
 
     void Start()
     {
-        StartWalking();
-        InvokeRepeating("ChangeDirection", changeDirectionInterval, changeDirectionInterval);
+        
     }
 
     void Update()
     {
-        // Controlla se gli UMAs hanno raggiunto il bordo del collider o hanno colpito un ostacolo e, in tal caso, cambia direzione
-        foreach (Transform child in umaRandomAvatar.transform)
+        if (isRunning == false)
         {
-            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-            if (navMeshAgent != null)
+            foreach (Transform child in umaRandomAvatar.transform)
             {
+                NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
+                navMeshAgent.speed = 2.2f;
+                navMeshAgent.acceleration = 1f;
+                navMeshAgent.angularSpeed = 180f;
+                navMeshAgent.radius = 0.7f;
+                navMeshAgent.stoppingDistance = 2f;
+
+                Animator animator = navMeshAgent.GetComponent<Animator>();
+                animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+
+
                 if (navMeshAgent.remainingDistance <= navMeshAgent.stoppingDistance && !navMeshAgent.pathPending)
                 {
-                    Vector3 randomDestination = GetRandomNavmeshLocationInCircle(boundaryCollider.transform.position, boundaryCollider.bounds.extents.x);
+                    Vector3 randomDestination = GetRandomNavmeshLocation();
                     navMeshAgent.SetDestination(randomDestination);
                 }
             }
         }
-    }
 
-    void StartWalking()
-    {
-        // Imposta la velocità e la destinazione per ogni UMA
+        // Se viene cliccato il tasto sinistro del mouse
+        if (Input.GetMouseButtonDown(0))
+        {
+            // Lanciare un raggio dal punto in cui è stato cliccato
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            // Se il raggio colpisce un oggetto sulla NavMesh
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity, NavMesh.AllAreas))
+            {
+
+                // Ottieni le coordinate del punto colpito
+                Vector3 clickedPoint = hit.point;
+             
+                // Itera attraverso ogni UMA generato
+                foreach (Transform child in umaRandomAvatar.transform)
+                {
+                    isRunning = true;
+
+                    // Ottieni il componente NavMeshAgent dell'UMA
+                    NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
+                    Animator animator = navMeshAgent.GetComponent<Animator>();
+
+                    //animator.SetTrigger("CrouchTrigger");
+                    // Ottieni le coordinate dell'UMA
+                    Vector3 umaPosition = child.position;
+
+                    // Se clicco in alto, gli uma andranno in basso
+                    if (clickedPoint.z >= umaPosition.z)
+                    {
+                        if(clickedPoint.x < umaPosition.x)
+                        {
+                            animator.SetTrigger("RunTrigger");
+                            // Calcola la nuova destinazione
+                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                            navMeshAgent.SetDestination(newDestination);
+                        }else
+                        {
+                            animator.SetTrigger("RunTrigger");
+                            // Calcola la nuova destinazione 
+                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                            navMeshAgent.SetDestination(newDestination);
+                        }
+                    }
+                    // se clicco in basso, gli uma andranno in alto
+                    if (clickedPoint.z <= umaPosition.z)
+                    {
+                        if (clickedPoint.x < umaPosition.x)
+                        {
+                            animator.SetTrigger("RunTrigger");
+                            // Calcola la nuova destinazione
+                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                            navMeshAgent.SetDestination(newDestination);
+                        }
+                        else
+                        {
+                            animator.SetTrigger("RunTrigger");
+                            // Calcola la nuova destinazione 
+                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                            navMeshAgent.SetDestination(newDestination);
+                        }
+                    }
+                    // se clicco a destra, gli uma andranno a sinistra
+                    if (clickedPoint.x >= umaPosition.x)
+                    {
+                        if (clickedPoint.z < umaPosition.z)
+                        {
+                            animator.SetTrigger("RunTrigger");
+                            // Calcola la nuova destinazione    
+                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                            navMeshAgent.SetDestination(newDestination);
+                        }
+                        else
+                        {
+                            animator.SetTrigger("RunTrigger");
+                            // Calcola la nuova destinazione 
+                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                            navMeshAgent.SetDestination(newDestination);
+                        }
+                    }
+                    //se clicco a sinistra, gli uma andranno a destra 
+                    if (clickedPoint.x <= umaPosition.x)
+                    {
+                        if (clickedPoint.z < umaPosition.z)
+                        {
+                            animator.SetTrigger("RunTrigger");
+                            // Calcola la nuova destinazione 
+                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                            navMeshAgent.SetDestination(newDestination);
+                        }
+                        else
+                        {
+                            animator.SetTrigger("RunTrigger");
+                            // Calcola la nuova destinazione 
+                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                            navMeshAgent.SetDestination(newDestination);
+                        }
+                    }
+                }
+            }
+        }
         foreach (Transform child in umaRandomAvatar.transform)
         {
-            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-            if (navMeshAgent != null)
-            {
-                navMeshAgent.speed = 1f;
-                Vector3 randomDestination = GetRandomNavmeshLocationInCircle(boundaryCollider.transform.position, boundaryCollider.bounds.extents.x);
-                navMeshAgent.SetDestination(randomDestination);
-                navMeshAgent.autoBraking = false; // Disabilita l'auto-frenata per permettere agli UMAs di continuare a muoversi anche dopo aver colpito un ostacolo
-            }
 
-            Animator animator = child.GetComponent<Animator>();
-            if (animator != null)
+            // Ottieni il componente NavMeshAgent dell'UMA
+            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
+            Animator animator = navMeshAgent.GetComponent<Animator>();
+
+            // Controlla se l'UMA ha raggiunto la destinazione
+            if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance < 2f)
             {
-                animator.SetFloat("Speed", 1);
-                animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
+                animator.SetTrigger("IdleTrigger"); // Assicurati di avere un trigger "IdleTrigger" nell'animator per far sì che l'UMA passi allo stato di riposo
             }
         }
     }
 
-    // Genera una posizione casuale all'interno della circonferenza
-    Vector3 GetRandomNavmeshLocationInCircle(Vector3 center, float radius)
+    // Genera una posizione casuale all'interno del navmesh
+    Vector3 GetRandomNavmeshLocation()
     {
-        Vector2 randomDirection = Random.insideUnitCircle.normalized * radius;
-        Vector3 randomDestination = center + new Vector3(randomDirection.x, 0f, randomDirection.y);
-        return randomDestination;
-    }
-
-    // Funzione per il cambio di direzione
-    void ChangeDirection()
-    {
-        foreach (Transform child in umaRandomAvatar.transform)
+        NavMeshHit navHit;
+        Vector3 randomPoint = Vector3.zero;
+        if (NavMesh.SamplePosition(transform.position + Random.insideUnitSphere * 13f, out navHit, 10f, NavMesh.AllAreas))
         {
-            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-            if (navMeshAgent != null)
-            {
-                Vector3 randomDestination = GetRandomNavmeshLocationInCircle(boundaryCollider.transform.position, boundaryCollider.bounds.extents.x);
-                navMeshAgent.SetDestination(randomDestination);
-            }
+            randomPoint = navHit.position;
         }
+        return randomPoint;
     }
 }
-
