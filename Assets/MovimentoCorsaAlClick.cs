@@ -75,7 +75,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                     float distance = Vector3.Distance(umaPosition, clickedPoint);
 
                     // Definisci il raggio dell'area
-                    float radius = 1.5f;
+                    float radius = 1.8f;
 
                     if (distance <= radius)
                     {
@@ -86,7 +86,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                     else
                     {
                         // Se clicco in alto, gli uma andranno in basso
-                        if (clickedPoint.z >= umaPosition.z )
+                        if (clickedPoint.z >= umaPosition.z && animator.GetBool("IsDeath")==false)
                         {
                             if (clickedPoint.x < umaPosition.x)
                             {
@@ -104,7 +104,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                             }
                         }
                         // se clicco in basso, gli uma andranno in alto
-                        if (clickedPoint.z <= umaPosition.z)
+                        if (clickedPoint.z <= umaPosition.z && animator.GetBool("IsDeath") == false)
                         {
                             if (clickedPoint.x < umaPosition.x)
                             {
@@ -122,7 +122,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                             }
                         }
                         // se clicco a destra, gli uma andranno a sinistra
-                        if (clickedPoint.x >= umaPosition.x)
+                        if (clickedPoint.x >= umaPosition.x && animator.GetBool("IsDeath") == false)
                         {
                             if (clickedPoint.z < umaPosition.z)
                             {
@@ -140,7 +140,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                             }
                         }
                         //se clicco a sinistra, gli uma andranno a destra 
-                        if (clickedPoint.x <= umaPosition.x)
+                        if (clickedPoint.x <= umaPosition.x && animator.GetBool("IsDeath") == false)
                         {
                             if (clickedPoint.z < umaPosition.z)
                             {
