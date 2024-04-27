@@ -5,7 +5,7 @@ using UnityEngine;
 using UnityEngine.AI;
 using static UnityEditor.Experimental.GraphView.Port;
 using static UnityEngine.UI.CanvasScaler;
-
+using UnityEngine.UI;
 public class MovimentoCorsaAlClick : MonoBehaviour
 {
     public UMARandomAvatar umaRandomAvatar;
@@ -15,12 +15,14 @@ public class MovimentoCorsaAlClick : MonoBehaviour
     float detectionRadius = 2.5f;
     private float maxTimeToDestination = 10f; // Tempo massimo consentito per raggiungere la destinazione
     private float currentTimeToDestination = 0f; // Timer per tenere traccia del tempo trascorso
-    bool CliccatoTastoSinistro = false;
+    bool CliccatoTastoDestro = false;
     private float modificaDest = 15f;
     float maxSpeedRun = 1f;
     float medSpeedRun = 0.80f;
     float minSpeedRun = 0.65f;
     float detectionRadiusRun = 2.5f;
+    float counterInciampo = 0f;
+
 
     void Start()
     {
@@ -30,9 +32,9 @@ public class MovimentoCorsaAlClick : MonoBehaviour
     void Update()
     {
         CaratteristicheUMA();
-        
+        counterInciampo += Time.deltaTime * 5f;
 
-        if (CliccatoTastoSinistro == false)
+        if (CliccatoTastoDestro == false)
         {
             UpdateUMAAnimations();
             UpdateUMADestinations();
@@ -41,10 +43,11 @@ public class MovimentoCorsaAlClick : MonoBehaviour
         // Se viene cliccato il tasto destro del mouse
         if (Input.GetMouseButtonDown(1))
         {
+            counterInciampo = 0f;
             DeathAnimation();
         }
         RaggiungimentoDestinazione();
-
+        Inciampo();
     }
 
     void UpdateUMAAnimations()
@@ -88,7 +91,6 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             // Se non ci sono UMA nelle vicinanze o al massimo 3, incrementa progressivamente la velocità fino a 0.40
             if (nearbyUMACount >= 0 && nearbyUMACount <= 2)
             {
-
                 float targetSpeed = Mathf.Lerp(0f, maxSpeedWalk, Mathf.Clamp01(Time.time)); // Modifica il 5f con la durata desiderata per raggiungere la velocità massima
                 animator.SetFloat("Speed", targetSpeed);
                 navMeshAgent.speed = targetSpeed * 3;
@@ -164,7 +166,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
 
     void DeathAnimation()
     {
-        CliccatoTastoSinistro = true;
+        CliccatoTastoDestro = true;
 
         // Lanciare un raggio dal punto in cui è stato cliccato
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -176,10 +178,10 @@ public class MovimentoCorsaAlClick : MonoBehaviour
 
             // Ottieni le coordinate del punto colpito
             Vector3 clickedPoint = hit.point;
-            Debug.Log("Coordinate del punto colpito: " + clickedPoint);
-            
+
             // Crea un collider sferico intorno al punto cliccato
-            Collider[] colliders = Physics.OverlapSphere(clickedPoint, 1.0f); // 2.0f è il raggio dell'area
+            Collider[] colliders = Physics.OverlapSphere(clickedPoint, 2.5f); // 2.0f è il raggio dell'area
+                                                                              
 
             // Itera attraverso gli UMA all'interno dell'area
             foreach (Collider collider in colliders)
@@ -189,105 +191,106 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                 // Verifica se il collider appartiene a un UMA
                 if (collider.CompareTag("Player"))
                 {
-                    // Attiva l'animazione di morte
-                    animator.SetTrigger("TriggerDeathF");
-                    navMeshAgent.ResetPath();
-                    navMeshAgent.speed = 0f;
                     animator.SetBool("IsDeath", true);
-                    
-                    //}
-                    //}
-                    // Visualizza l'oggetto visivo (sfera) intorno al punto cliccato per rappresentare il collider sferico
-                    //GameObject sphereVisual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    //sphereVisual.transform.position = clickedPoint;
-                    //sphereVisual.transform.localScale = new Vector3(4.0f, 4.0f, 4.0f); // Dimensiona la sfera visiva
-                    //Renderer sphereRenderer = sphereVisual.GetComponent<Renderer>();
-                    //sphereRenderer.material.color = Color.blue; // Imposta il colore della sfera visiva
+                    animator.SetTrigger("TriggerDeathF");
+                    navMeshAgent.speed = 0f;
+                    navMeshAgent.ResetPath();
 
                 }
-                    
+
+
+                // Visualizza l'oggetto visivo (sfera) intorno al punto cliccato per rappresentare il collider sferico
+                GameObject sphereVisual = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+                sphereVisual.transform.position = clickedPoint;
+                sphereVisual.transform.localScale = new Vector3(4.0f, 4.0f, 4.0f); // Dimensiona la sfera visiva
+
+                // Imposta il renderer della sfera visiva inattivo per renderla invisibile
+                Renderer sphereRenderer = sphereVisual.GetComponent<Renderer>();
+                sphereRenderer.enabled = false;
+
             }
             foreach (Transform child in umaRandomAvatar.transform)
             {
                 NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-                Animator animator = navMeshAgent.GetComponent<Animator>();
-                if (animator.GetBool("IsDeath") == false)
-                {
-                    Vector3 umaPosition = child.position;
+                Animator animator = child.GetComponent<Animator>();
+                Rigidbody rb = child.GetComponent<Rigidbody>();
+                // Verifica se l'UMA ha colliso con altri oggetti
+                
+                Vector3 umaPosition = child.position;
 
-                    // Se clicco in alto, gli uma andranno in basso
-                    if (clickedPoint.z >= umaPosition.z && animator.GetBool("IsDeath") == false)
+                // Se clicco in alto, gli uma andranno in basso
+                if (clickedPoint.z >= umaPosition.z)
+                {
+                    if (clickedPoint.x <= umaPosition.x)
                     {
-                        if (clickedPoint.x <= umaPosition.x)
-                        {
-                            MovimentoPerico();
-                            // Calcola la nuova destinazione
-                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
-                        else
-                        {
-                            MovimentoPerico();
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
+                        MovimentoPerico();
+                        // Calcola la nuova destinazione
+                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                        navMeshAgent.SetDestination(newDestination);
                     }
-                    // se clicco in basso, gli uma andranno in alto
-                    if (clickedPoint.z <= umaPosition.z && animator.GetBool("IsDeath") == false)
+                    else
                     {
-                        if (clickedPoint.x <= umaPosition.x)
-                        {
-                            MovimentoPerico();
-                            // Calcola la nuova destinazione
-                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
-                        else
-                        {
-                            MovimentoPerico();
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
-                    }
-                    // se clicco a destra, gli uma andranno a sinistra
-                    if (clickedPoint.x >= umaPosition.x && animator.GetBool("IsDeath") == false)
-                    {
-                        if (clickedPoint.z <= umaPosition.z)
-                        {
-                            MovimentoPerico();
-                            // Calcola la nuova destinazione    
-                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
-                        else
-                        {
-                            MovimentoPerico();
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
-                    }
-                    //se clicco a sinistra, gli uma andranno a destra 
-                    if (clickedPoint.x <= umaPosition.x && animator.GetBool("IsDeath") == false)
-                    {
-                        if (clickedPoint.z <= umaPosition.z)
-                        {
-                            MovimentoPerico();
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
-                        else
-                        {
-                            MovimentoPerico();
-                            // Calcola la nuova destinazione 
-                            Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
-                            navMeshAgent.SetDestination(newDestination);
-                        }
+                        MovimentoPerico();
+                        // Calcola la nuova destinazione 
+                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                        navMeshAgent.SetDestination(newDestination);
                     }
                 }
+                // se clicco in basso, gli uma andranno in alto
+                if (clickedPoint.z <= umaPosition.z)
+                {
+                    if (clickedPoint.x <= umaPosition.x)
+                    {
+                        MovimentoPerico();
+                        // Calcola la nuova destinazione
+                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                        navMeshAgent.SetDestination(newDestination);
+                    }
+                    else
+                    {
+                        MovimentoPerico();
+                        // Calcola la nuova destinazione 
+                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                        navMeshAgent.SetDestination(newDestination);
+                    }
+                }
+                // se clicco a destra, gli uma andranno a sinistra
+                if (clickedPoint.x >= umaPosition.x)
+                {
+                    if (clickedPoint.z <= umaPosition.z)
+                    {
+                        MovimentoPerico();
+                        // Calcola la nuova destinazione    
+                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                        navMeshAgent.SetDestination(newDestination);
+                    }
+                    else
+                    {
+                        MovimentoPerico();
+                        // Calcola la nuova destinazione 
+                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                        navMeshAgent.SetDestination(newDestination);
+                    }
+                }
+                //se clicco a sinistra, gli uma andranno a destra 
+                if (clickedPoint.x <= umaPosition.x)
+                {
+                    if (clickedPoint.z <= umaPosition.z)
+                    {
+                        MovimentoPerico();
+                        // Calcola la nuova destinazione 
+                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                        navMeshAgent.SetDestination(newDestination);
+                    }
+                    else
+                    {
+                        MovimentoPerico();
+                        // Calcola la nuova destinazione 
+                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                        navMeshAgent.SetDestination(newDestination);
+                    }
+                }
+
 
             }
 
@@ -303,7 +306,12 @@ public class MovimentoCorsaAlClick : MonoBehaviour
         // Popola la lista con tutte le posizioni degli UMA
         foreach (Transform child in umaRandomAvatar.transform)
         {
-            allUMATransforms.Add(child);
+            Animator animator = child.GetComponent<Animator>();
+            if (animator.GetBool("IsDeath") == false)
+            {
+                allUMATransforms.Add(child);
+            }
+
         }
 
         // Per ogni UMA, calcola la distanza con tutti gli altri UMA
@@ -336,15 +344,15 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             // Se non ci sono UMA nelle vicinanze o al massimo 3, incrementa fino a 1
             if (nearbyUMACount >= 0 && nearbyUMACount <= 3)
             {
-
-                float targetSpeed = Mathf.Lerp(0.2f, maxSpeedRun, Mathf.Clamp01(Time.time)); 
+                float targetSpeed = Mathf.Lerp(0.7f, maxSpeedRun, Mathf.Clamp01(Time.time));
                 animator.SetFloat("Speed", targetSpeed);
                 navMeshAgent.speed = targetSpeed * 3;
+
             }
             else if (nearbyUMACount > 3 && nearbyUMACount <= 6)
             {
                 //Rallenta fino alla MedSpeedRun
-                float targetSpeed = Mathf.Lerp(maxSpeedRun,medSpeedRun, Mathf.Clamp01((nearbyUMACount - 3) / 10f));
+                float targetSpeed = Mathf.Lerp(maxSpeedRun, medSpeedRun, Mathf.Clamp01((nearbyUMACount - 3) / 10f));
                 // Applica il nuovo speed all'animator
                 animator.SetFloat("Speed", targetSpeed);
                 navMeshAgent.speed = targetSpeed * 3;
@@ -370,7 +378,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             Animator animator = navMeshAgent.GetComponent<Animator>();
 
             // Controlla se l'UMA ha raggiunto la destinazione
-            if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance < 1f && animator.GetBool("IsDeath") == false && CliccatoTastoSinistro == true)
+            if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance < 1f && animator.GetBool("IsDeath") == false && CliccatoTastoDestro == true)
             {
                 animator.SetTrigger("IdleTrigger");
                 navMeshAgent.speed = 0f;
@@ -378,6 +386,30 @@ public class MovimentoCorsaAlClick : MonoBehaviour
         }
 
     }
+
+    void Inciampo()
+    {
+        foreach (Transform child in umaRandomAvatar.transform)
+        {
+
+            // Ottieni il componente NavMeshAgent dell'UMA
+            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
+            Animator animator = navMeshAgent.GetComponent<Animator>();
+
+            float speedEscape = animator.GetFloat("Speed");
+            // Controlla se l'UMA ha raggiunto la destinazione
+            if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance > 1f && animator.GetBool("IsDeath") == false && CliccatoTastoDestro == true && counterInciampo > 10f
+                && speedEscape >= 0.68f && speedEscape <= 0.74)
+            {
+                animator.SetTrigger("StumbleTrigger");
+                navMeshAgent.speed = 0f;
+                animator.SetBool("IsDeath", true);
+                navMeshAgent.ResetPath();
+            }
+        }
+
+    }
+
 
     // Genera una posizione casuale all'interno del navmesh
     Vector3 GetRandomNavmeshLocation()
@@ -391,6 +423,3 @@ public class MovimentoCorsaAlClick : MonoBehaviour
         return randomPoint;
     }
 }
-
-
-
