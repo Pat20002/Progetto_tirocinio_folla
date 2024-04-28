@@ -6,6 +6,8 @@ using UnityEngine.AI;
 using static UnityEditor.Experimental.GraphView.Port;
 using static UnityEngine.UI.CanvasScaler;
 using UnityEngine.UI;
+using System;
+using System.Linq;
 public class MovimentoCorsaAlClick : MonoBehaviour
 {
     public UMARandomAvatar umaRandomAvatar;
@@ -17,7 +19,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
     private float currentTimeToDestination = 0f; // Timer per tenere traccia del tempo trascorso
     bool CliccatoTastoDestro = false;
     private float modificaDest = 15f;
-    float maxSpeedRun = 1f;
+    float maxSpeedRun = 0.95f;
     float medSpeedRun = 0.80f;
     float minSpeedRun = 0.65f;
     float detectionRadiusRun = 2.5f;
@@ -39,6 +41,11 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             UpdateUMAAnimations();
             UpdateUMADestinations();
         }
+        else
+        {
+            RaggiungimentoDestinazione();
+            Inciampo();
+        }
 
         // Se viene cliccato il tasto destro del mouse
         if (Input.GetMouseButtonDown(1))
@@ -46,8 +53,6 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             counterInciampo = 0f;
             DeathAnimation();
         }
-        RaggiungimentoDestinazione();
-        Inciampo();
     }
 
     void UpdateUMAAnimations()
@@ -114,6 +119,8 @@ public class MovimentoCorsaAlClick : MonoBehaviour
         }
     }
 
+
+
     void CaratteristicheUMA()
     {
         foreach (Transform child in umaRandomAvatar.transform)
@@ -127,7 +134,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             navMeshAgent.angularSpeed = 180f;
 
             // Genera un livello di priorità random tra 1 e 100
-            navMeshAgent.avoidancePriority = Random.Range(1, 100);
+            navMeshAgent.avoidancePriority = UnityEngine.Random.Range(1, 100);
         }
     }
 
@@ -212,8 +219,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             foreach (Transform child in umaRandomAvatar.transform)
             {
                 NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-                Animator animator = child.GetComponent<Animator>();
-                Rigidbody rb = child.GetComponent<Rigidbody>();
+                
                 // Verifica se l'UMA ha colliso con altri oggetti
                 
                 Vector3 umaPosition = child.position;
@@ -370,53 +376,106 @@ public class MovimentoCorsaAlClick : MonoBehaviour
 
     void RaggiungimentoDestinazione()
     {
-        foreach (Transform child in umaRandomAvatar.transform)
-        {
-
-            // Ottieni il componente NavMeshAgent dell'UMA
-            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-            Animator animator = navMeshAgent.GetComponent<Animator>();
-
-            // Controlla se l'UMA ha raggiunto la destinazione
-            if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance < 1f && animator.GetBool("IsDeath") == false && CliccatoTastoDestro == true)
+        
+        
+            foreach (Transform child in umaRandomAvatar.transform)
             {
-                animator.SetTrigger("IdleTrigger");
-                navMeshAgent.speed = 0f;
+
+                // Ottieni il componente NavMeshAgent dell'UMA
+                NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
+                Animator animator = navMeshAgent.GetComponent<Animator>();
+
+                // Controlla se l'UMA ha raggiunto la destinazione
+                if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance < 2f && animator.GetBool("IsDeath") == false && animator.GetBool("IsStumple") == false )
+                {
+                    animator.SetTrigger("InjuryRunToIdle");
+                    animator.SetTrigger("IdleTrigger");
+                    navMeshAgent.speed = 0f;
+                    
+                }
             }
-        }
+            
+        
 
     }
 
+    bool PermessoInciampo = false;
     void Inciampo()
     {
-        foreach (Transform child in umaRandomAvatar.transform)
+        if ( PermessoInciampo == false && counterInciampo > 13f)
         {
+            // Lista per memorizzare tutti gli UMA e le loro posizioni
+            List<Transform> allUMATransforms = new List<Transform>();
 
-            // Ottieni il componente NavMeshAgent dell'UMA
-            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-            Animator animator = navMeshAgent.GetComponent<Animator>();
-
-            float speedEscape = animator.GetFloat("Speed");
-            // Controlla se l'UMA ha raggiunto la destinazione
-            if (!navMeshAgent.pathPending && navMeshAgent.remainingDistance > 1f && animator.GetBool("IsDeath") == false && CliccatoTastoDestro == true && counterInciampo > 10f
-                && speedEscape >= 0.68f && speedEscape <= 0.74)
+            // Popola la lista con tutte le posizioni degli UMA
+            foreach (Transform child in umaRandomAvatar.transform)
             {
-                animator.SetTrigger("StumbleTrigger");
-                navMeshAgent.speed = 0f;
-                animator.SetBool("IsDeath", true);
-                navMeshAgent.ResetPath();
+                Animator animator = child.GetComponent<Animator>();
+                if (animator.GetBool("IsDeath") == false)
+                {
+                    allUMATransforms.Add(child);
+                }
+
+            }
+
+            // Per ogni UMA, calcola la distanza con tutti gli altri UMA
+            foreach (Transform umaTransform in allUMATransforms)
+            {
+                Animator animator = umaTransform.GetComponent<Animator>();
+                // Lista per memorizzare le distanze tra l'UMA corrente e gli altri UMA
+                List<Transform> nearbyUMAs = new List<Transform>();
+
+                foreach (Transform otherUMATransform in allUMATransforms)
+                {
+                    if (otherUMATransform != umaTransform)
+                    {
+                        float distance = Vector3.Distance(umaTransform.position, otherUMATransform.position);
+
+                        //Se la distanza è inferiore a 2 unità di lunghezza(2f), significa che l'altro UMA si trova entro un raggio di 2 unità di lunghezza rispetto all'UMA corrente.
+                        //In tal caso, aggiungiamo l'altro UMA alla lista nearbyUMAs, indicando che è vicino all'UMA corrente.
+                        if (distance < 1.2f)
+                        {
+                            nearbyUMAs.Add(otherUMATransform);
+                        }
+                    }
+                }
+
+                // Conta il numero di UMA nelle vicinanze, escludendo l'UMA stesso
+                int nearbyUMACount = nearbyUMAs.Count; // Sottrai 1 per escludere l'UMA corrente
+
+                NavMeshAgent navMeshAgent = umaTransform.GetComponent<NavMeshAgent>();
+
+                // Se non ci sono UMA nelle vicinanze o al massimo 3, incrementa fino a 1
+                if (nearbyUMACount >= 6 )
+                {
+                    // Genera un numero casuale da 1 a 5
+                    int randomNumber = UnityEngine.Random.Range(1, 4);
+                    // Verifica se il numero casuale è uguale a 4
+                    if (randomNumber == 2 && counterInciampo > 13f)
+                    {
+                        animator.SetTrigger("StumbleTrigger");
+                        navMeshAgent.speed = 0f;
+                        animator.SetBool("IsStumple", true);
+                        navMeshAgent.ResetPath();
+                        PermessoInciampo = true;
+                    }
+                    if (randomNumber == 1)
+                    {
+                        animator.SetTrigger("InjuryRun");
+                        animator.SetBool("IsInjury", true);
+                        animator.SetFloat("Speed", 0.5f);
+                        navMeshAgent.speed = 0.35f*3;
+                    }
+                }
             }
         }
-
     }
-
-
     // Genera una posizione casuale all'interno del navmesh
     Vector3 GetRandomNavmeshLocation()
     {
         NavMeshHit navHit;
         Vector3 randomPoint = Vector3.zero;
-        if (NavMesh.SamplePosition(transform.position + Random.insideUnitSphere * 13f, out navHit, 10f, NavMesh.AllAreas))
+        if (NavMesh.SamplePosition(transform.position + UnityEngine.Random.insideUnitSphere * 13f, out navHit, 10f, NavMesh.AllAreas))
         {
             randomPoint = navHit.position;
         }
