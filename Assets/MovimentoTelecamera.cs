@@ -4,8 +4,8 @@ public class FreeCameraController : MonoBehaviour
 {
     public float moveSpeed = 2f; // Velocità di movimento della telecamera
     public float rotationSpeed = 1f; // Velocità di rotazione della telecamera
-    public float zoomSpeed = 5f; // Velocità di zoom della telecamera
-    
+    public float maxYPosition = 10f; // Posizione massima in alto della telecamera
+    public float minYPosition = 1f; // Posizione minima in basso della telecamera
 
     void Update()
     {
@@ -34,13 +34,13 @@ public class FreeCameraController : MonoBehaviour
         // Applica la rotazione della telecamera
         transform.Rotate(Vector3.up, rotationX * rotationSpeed);
 
-        // Zoom della telecamera utilizzando la rotellina del mouse
-        float scrollWheelInput = Input.GetAxis("Mouse ScrollWheel");
-        transform.Translate(Vector3.forward * scrollWheelInput * zoomSpeed);
+        // Modifica l'altezza della telecamera in base alla posizione verticale del cursore del mouse
+        float mouseY = Input.mousePosition.y / Screen.height; // Posizione verticale del cursore rispetto alla finestra di gioco (normalizzata)
+        float targetYPosition = Mathf.Lerp(minYPosition, maxYPosition, mouseY); // Calcola la nuova posizione Y della telecamera usando Lerp
+        transform.position = new Vector3(transform.position.x, targetYPosition, transform.position.z); // Imposta la nuova posizione della telecamera
     }
 }
-        
-    
+
 
 
 
