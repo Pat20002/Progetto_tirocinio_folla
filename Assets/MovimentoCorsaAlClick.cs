@@ -18,9 +18,9 @@ public class MovimentoCorsaAlClick : MonoBehaviour
     private float maxTimeToDestination = 10f; // Tempo massimo consentito per raggiungere la destinazione
     private float currentTimeToDestination = 0f; // Timer per tenere traccia del tempo trascorso
     bool CliccatoTastoDestro = false;
-    float maxSpeedRun = 0.90f;
-    float medSpeedRun = 0.75f;
-    float minSpeedRun = 0.50f;
+    float maxSpeedRun = 0.80f;
+    float medSpeedRun = 0.65f;
+    float minSpeedRun = 0.45f;
     float detectionRadiusRun = 1.0f;
     float counterInciampo = 0f;
 
@@ -195,14 +195,14 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                     {
                         MovimentoPerico();
                         // Calcola la nuova destinazione
-                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest + UnityEngine.Random.Range(-10,10), umaPosition.y, umaPosition.z - modificaDest + UnityEngine.Random.Range(-10,10));
                         navMeshAgent.SetDestination(newDestination);
                     }
                     else
                     {
                         MovimentoPerico();
                         // Calcola la nuova destinazione 
-                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest + UnityEngine.Random.Range(-10, 10), umaPosition.y, umaPosition.z - modificaDest + UnityEngine.Random.Range(-10, 10));
                         navMeshAgent.SetDestination(newDestination);
                     }
                 }
@@ -213,14 +213,14 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                     {
                         MovimentoPerico();
                         // Calcola la nuova destinazione
-                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest + UnityEngine.Random.Range(-10,10), umaPosition.y, umaPosition.z + modificaDest + UnityEngine.Random.Range(-10,10));
                         navMeshAgent.SetDestination(newDestination);
                     }
                     else
                     {
                         MovimentoPerico();
                         // Calcola la nuova destinazione 
-                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest + UnityEngine.Random.Range(-10, 10), umaPosition.y, umaPosition.z + modificaDest + UnityEngine.Random.Range(-10, 10));
                         navMeshAgent.SetDestination(newDestination);
                     }
                 }
@@ -231,14 +231,14 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                     {
                         MovimentoPerico();
                         // Calcola la nuova destinazione    
-                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest + UnityEngine.Random.Range(-10, 10), umaPosition.y, umaPosition.z + modificaDest + UnityEngine.Random.Range(-10, 10));
                         navMeshAgent.SetDestination(newDestination);
                     }
                     else
                     {
                         MovimentoPerico();
                         // Calcola la nuova destinazione 
-                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                        Vector3 newDestination = new Vector3(umaPosition.x - modificaDest + UnityEngine.Random.Range(-10, 10), umaPosition.y, umaPosition.z - modificaDest + UnityEngine.Random.Range(-10, 10));
                         navMeshAgent.SetDestination(newDestination);
                     }
                 }
@@ -249,14 +249,14 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                     {
                         MovimentoPerico();
                         // Calcola la nuova destinazione 
-                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z + modificaDest);
+                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest + UnityEngine.Random.Range(-10, 10), umaPosition.y, umaPosition.z + modificaDest + UnityEngine.Random.Range(-10, 10));
                         navMeshAgent.SetDestination(newDestination);
                     }
                     else
                     {
                         MovimentoPerico();
                         // Calcola la nuova destinazione 
-                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest, umaPosition.y, umaPosition.z - modificaDest);
+                        Vector3 newDestination = new Vector3(umaPosition.x + modificaDest + UnityEngine.Random.Range(-10, 10), umaPosition.y, umaPosition.z - modificaDest + UnityEngine.Random.Range(-10, 10));
                         navMeshAgent.SetDestination(newDestination);
                     }
                 }
@@ -267,77 +267,40 @@ public class MovimentoCorsaAlClick : MonoBehaviour
 
     void MovimentoPerico()
     {
-        foreach (Transform child in umaRandomAvatar.transform)
-        {
-
-            // Ottieni il componente NavMeshAgent dell'UMA
-            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-            Animator animator = navMeshAgent.GetComponent<Animator>();
-
-            navMeshAgent.angularSpeed = 180f;
-            // Ottieni la posizione dell'UMA
-            Vector3 umaPosition = child.position;
-
-            // Trova tutti gli oggetti all'interno di un'area sferica intorno all'UMA
-            Collider[] colliders = Physics.OverlapSphere(umaPosition, detectionRadiusRun);
-
-            // Contatore per contare gli UMA con tag "Player" all'interno dell'area
-            int playerUMACount = 0;
-
-            // Itera attraverso gli oggetti trovati
-            foreach (Collider collider in colliders)
+            foreach (Transform umaTransform in umaRandomAvatar.transform)
             {
-                // Controlla se l'oggetto ha il tag "Player"
-                if (collider.CompareTag("Player"))
+                Animator animator = umaTransform.GetComponent<Animator>();
+                NavMeshAgent navMeshAgent = umaTransform.GetComponent<NavMeshAgent>();
+
+                // Calcola la direzione del raggio di percezione in base alla rotazione dell'UMA
+                Vector3 forwardDirection = umaTransform.forward;
+
+                // Lunghezza massima del raggio di percezione
+                float perceptionDistance = 2f;
+
+                // Lancio del raggio di percezione
+                RaycastHit hit;
+                if (Physics.Raycast(umaTransform.position, forwardDirection, out hit, perceptionDistance))
                 {
-                    // Incrementa il contatore
-                    playerUMACount++;
+                    // Controlla se l'oggetto colpito è un UMA
+                    if (hit.collider.CompareTag("Player") && animator.GetBool("IsInjury") == false)
+                    {
+                        // Calcola la distanza tra l'UMA corrente e l'UMA colpito dal raggio
+                        float distanceToOtherUMA = Vector3.Distance(umaTransform.position, hit.collider.transform.position);
+
+                    float targetSpeed = Mathf.Lerp(maxSpeedWalk, medSpeedRun, distanceToOtherUMA / 2.0f); // Regola i valori di Lerp in base alla distanza minima desiderata
+                    navMeshAgent.speed = targetSpeed * 3; // Imposta la velocità dell'UMA
+                    animator.SetFloat("Speed", targetSpeed);
+                    }
                 }
-            }
-
-            if (playerUMACount > 0 && playerUMACount <= 2)
+                else if(animator.GetBool("IsInjury") == false)
             {
-                float desiredSpeed = navMeshAgent.desiredVelocity.magnitude; // Calcola la velocità desiderata
+                    // Se il raggio non colpisce nulla, ripristina la velocità dell'UMA
+                    animator.SetFloat("Speed", maxSpeedRun);
+                    navMeshAgent.speed = maxSpeedRun * 2;// Assumi che originalSpeed sia la velocità originale dell'UMA prima di applicare eventuali rallentamenti
+                }
 
-                // Applica un range tra 0 e 0.35 alla velocità desiderata
-                float targetSpeed = Mathf.Clamp(desiredSpeed, minSpeedRun, maxSpeedRun);
-                // Applica il nuovo speed all'animator
-                animator.SetFloat("Speed", targetSpeed);
-                navMeshAgent.speed = targetSpeed * 2;
             }
-            else if (playerUMACount > 2 && playerUMACount < 5)
-            {
-                float desiredSpeed = navMeshAgent.desiredVelocity.magnitude; // Calcola la velocità desiderata
-
-                // Applica un range tra 0 e 0.35 alla velocità desiderata
-                float targetSpeed = Mathf.Clamp(desiredSpeed, minSpeedRun, medSpeedRun);
-                // Applica il nuovo speed all'animator
-                animator.SetFloat("Speed", targetSpeed);
-                navMeshAgent.speed = targetSpeed * 2;
-            }
-            else if (playerUMACount > 5 && playerUMACount < 10)
-            {
-                float desiredSpeed = navMeshAgent.desiredVelocity.magnitude; // Calcola la velocità desiderata
-
-                // Applica un range tra 0 e 0.35 alla velocità desiderata
-                float targetSpeed = Mathf.Clamp(desiredSpeed, maxSpeedWalk, minSpeedRun);
-                // Applica il nuovo speed all'animator
-                animator.SetFloat("Speed", targetSpeed);
-                navMeshAgent.speed = targetSpeed * 2;
-            }
-            else
-            {
-                float desiredSpeed = navMeshAgent.desiredVelocity.magnitude; // Calcola la velocità desiderata
-
-                // Applica un range tra 0 e 0.35 alla velocità desiderata
-                float targetSpeed = Mathf.Clamp(desiredSpeed, 0.15f, medSpeedRun);
-                // Applica il nuovo speed all'animator
-                animator.SetFloat("Speed", targetSpeed);
-                navMeshAgent.speed = targetSpeed * 2;
-            }
-
-        }
-
     }
 
 
@@ -434,14 +397,14 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                         {
                             animator.SetTrigger("InjuryRun");
                             animator.SetBool("IsInjury", true);
-                            animator.SetFloat("Speed", 0.5f);
+                            animator.SetFloat("Speed", 0.3f);
                             navMeshAgent.speed = 0.35f * 3;
                         }
                         else
                         {
                             animator.SetTrigger("InjuryWalk");
                             animator.SetBool("IsInjury", true);
-                            animator.SetFloat("Speed", 0.5f);
+                            animator.SetFloat("Speed", 0.3f);
                             navMeshAgent.speed = 0.35f * 3;
                         }
                     }
