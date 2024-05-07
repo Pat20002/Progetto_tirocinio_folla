@@ -15,7 +15,6 @@ public class MovimentoCorsaAlClick : MonoBehaviour
     float minSpeedWalk = 0.20f; // Modificato per un rallentamento più marcato
     float medSpeedWalk = 0.25f;
     float maxSpeedWalk = 0.33f;
-    float detectionRadiusWalk = 1.5f;
     private float maxTimeToDestination = 10f; // Tempo massimo consentito per raggiungere la destinazione
     private float currentTimeToDestination = 0f; // Timer per tenere traccia del tempo trascorso
     bool CliccatoTastoDestro = false;
@@ -67,7 +66,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             // Imposta il raggio e la distanza di sosta del NavMeshAgent
             navMeshAgent.radius = 0.25f;
             navMeshAgent.acceleration = 3f;
-            navMeshAgent.angularSpeed = 120f;
+            navMeshAgent.angularSpeed = 180f;
             // Genera un livello di priorità random tra 1 e 100
             navMeshAgent.avoidancePriority = UnityEngine.Random.Range(1, 100);
             animator.cullingMode = AnimatorCullingMode.CullUpdateTransforms;
@@ -82,6 +81,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             Animator animator = umaTransform.GetComponent<Animator>();
             NavMeshAgent navMeshAgent = umaTransform.GetComponent<NavMeshAgent>();
             Rigidbody rigidbody = umaTransform.GetComponent<Rigidbody>();
+
             if (rigidbody != null)
             {
                 Destroy(rigidbody);
@@ -94,8 +94,19 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             {
                 if (otherUMATransform != umaTransform)
                 {
-                    float distance = Vector3.Distance(umaTransform.position, otherUMATransform.position);
-                    distancesToOtherUMAs.Add(distance);
+                    // Calcola il vettore dalla posizione dell'UMA corrente all'altro UMA
+                    Vector3 toOtherUMA = otherUMATransform.position - umaTransform.position;
+
+                    // Calcola l'angolo tra il vettore forward dell'UMA corrente e il vettore toOtherUMA
+                    float angle = Vector3.Angle(umaTransform.forward, toOtherUMA);
+
+                    // Filtra gli UMA basati sull'angolo per includere solo quelli posizionati davanti all'UMA corrente
+                    if (angle < 50f) // Ad esempio, considera solo gli UMA posizionati entro un angolo di 90 gradi rispetto all'UMA corrente
+                    {
+                        // Calcola la distanza tra l'UMA corrente e l'altro UMA
+                        float distance = toOtherUMA.magnitude;
+                        distancesToOtherUMAs.Add(distance);
+                    }
                 }
             }
 
@@ -103,16 +114,17 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             float minDistanceToOtherUMAs = distancesToOtherUMAs.Count > 0 ? distancesToOtherUMAs.Min() : Mathf.Infinity;
 
             // Se la distanza minima è inferiore a un certo valore, rallenta l'UMA
-            if (minDistanceToOtherUMAs < detectionRadiusWalk) // Imposta il valore appropriato
+            if (minDistanceToOtherUMAs <= 0.7f) // Imposta il valore appropriato
             {
-                float targetSpeed = Mathf.Lerp(minSpeedWalk, maxSpeedWalk, minDistanceToOtherUMAs / 2.0f); // Regola i valori di Lerp in base alla distanza minima desiderata
+                float targetSpeed = Mathf.Lerp(minSpeedWalk, medSpeedWalk, minDistanceToOtherUMAs / 2.0f); // Regola i valori di Lerp in base alla distanza minima desiderata
                 navMeshAgent.speed = targetSpeed * 3; // Imposta la velocità dell'UMA
                 animator.SetFloat("Speed", targetSpeed); // Imposta la velocità dell'animator
             }
-            else
+            else 
             {
-                navMeshAgent.speed = 1f; // Ripristina la velocità predefinita se non ci sono altri UMA nelle vicinanze
-                animator.SetFloat("Speed", maxSpeedWalk); // Imposta la velocità predefinita dell'animator
+                float targetSpeed = Mathf.Lerp(medSpeedWalk, maxSpeedWalk, minDistanceToOtherUMAs / 2.0f); // Regola i valori di Lerp in base alla distanza minima desiderata
+                navMeshAgent.speed = targetSpeed * 3; // Imposta la velocità dell'UMA
+                animator.SetFloat("Speed", targetSpeed); // Imposta la velocità dell'animator
             }
         }
     }
@@ -121,10 +133,10 @@ public class MovimentoCorsaAlClick : MonoBehaviour
     {
         foreach (Transform child in umaRandomAvatar.transform)
         {
-            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-            
+            NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();           
             // Calcola la distanza rimanente alla destinazione
             float distanceToDestination = navMeshAgent.remainingDistance;
+
             // Se l'UMA ha raggiunto la destinazione
             if (!navMeshAgent.pathPending && distanceToDestination > 2f)
             {
@@ -138,14 +150,14 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                     navMeshAgent.SetDestination(randomDestination);
                     // Resetta il timer
                     currentTimeToDestination = 0f;
+                 
                 }
             }
             else
             {
                 // Ottieni una nuova destinazione casuale
                 Vector3 randomDestination = GetRandomNavmeshLocation();
-                navMeshAgent.SetDestination(randomDestination);
-                // Controlla se l'agente sta ancora cercando di raggiungere la destinazione
+                navMeshAgent.SetDestination(randomDestination);                                          
             }
         }
     }
@@ -180,7 +192,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                 {
                     animator.SetBool("IsDeath", true);
                     animator.SetTrigger("TriggerDeathF");
-                    collider.tag = "Finish";
+                    
                 }
 
             }
@@ -415,6 +427,8 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                     // Verifica se il numero casuale è uguale a 4
                     if (randomNumber == 2 && counterInciampo > 13f)
                     {
+                        CapsuleCollider capsulecollider = umaTransform.GetComponent<CapsuleCollider>();
+                        Destroy(capsulecollider);
                         animator.SetTrigger("StumbleTrigger");
                         navMeshAgent.speed = 0f;
                         animator.SetBool("IsStumple", true);
