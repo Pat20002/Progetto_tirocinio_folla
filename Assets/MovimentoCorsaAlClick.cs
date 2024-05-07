@@ -13,6 +13,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
 {
     public UMARandomAvatar umaRandomAvatar;
     float minSpeedWalk = 0.20f; // Modificato per un rallentamento più marcato
+    float medSpeedWalk = 0.25f;
     float maxSpeedWalk = 0.33f;
     float detectionRadiusWalk = 1.5f;
     private float maxTimeToDestination = 10f; // Tempo massimo consentito per raggiungere la destinazione
@@ -21,7 +22,6 @@ public class MovimentoCorsaAlClick : MonoBehaviour
     float maxSpeedRun = 0.80f;
     float medSpeedRun = 0.65f;
     float minSpeedRun = 0.45f;
-    float detectionRadiusRun = 1.0f;
     float counterInciampo = 0f;
 
 
@@ -65,7 +65,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             child.tag = "Player";
 
             // Imposta il raggio e la distanza di sosta del NavMeshAgent
-            navMeshAgent.radius = 0.1f;
+            navMeshAgent.radius = 0.25f;
             navMeshAgent.acceleration = 3f;
             navMeshAgent.angularSpeed = 120f;
             // Genera un livello di priorità random tra 1 e 100
@@ -81,7 +81,11 @@ public class MovimentoCorsaAlClick : MonoBehaviour
         {
             Animator animator = umaTransform.GetComponent<Animator>();
             NavMeshAgent navMeshAgent = umaTransform.GetComponent<NavMeshAgent>();
-
+            Rigidbody rigidbody = umaTransform.GetComponent<Rigidbody>();
+            if (rigidbody != null)
+            {
+                Destroy(rigidbody);
+            }
             // Lista per memorizzare le distanze dagli altri UMA
             List<float> distancesToOtherUMAs = new List<float>();
 
@@ -118,7 +122,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
         foreach (Transform child in umaRandomAvatar.transform)
         {
             NavMeshAgent navMeshAgent = child.GetComponent<NavMeshAgent>();
-
+            
             // Calcola la distanza rimanente alla destinazione
             float distanceToDestination = navMeshAgent.remainingDistance;
             // Se l'UMA ha raggiunto la destinazione
@@ -176,7 +180,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                 {
                     animator.SetBool("IsDeath", true);
                     animator.SetTrigger("TriggerDeathF");
-
+                    collider.tag = "Finish";
                 }
 
             }
@@ -267,40 +271,65 @@ public class MovimentoCorsaAlClick : MonoBehaviour
 
     void MovimentoPerico()
     {
-            foreach (Transform umaTransform in umaRandomAvatar.transform)
+        foreach (Transform umaTransform in umaRandomAvatar.transform)
+        {
+            Animator animator = umaTransform.GetComponent<Animator>();
+            NavMeshAgent navMeshAgent = umaTransform.GetComponent<NavMeshAgent>();
+
+            // Lista per memorizzare le distanze dagli altri UMA posizionati davanti
+            List<float> distancesToFrontUMAs = new List<float>();
+
+            // Calcola la distanza dagli altri UMA posizionati davanti
+            foreach (Transform otherUMATransform in umaRandomAvatar.transform)
             {
-                Animator animator = umaTransform.GetComponent<Animator>();
-                NavMeshAgent navMeshAgent = umaTransform.GetComponent<NavMeshAgent>();
-
-                // Calcola la direzione del raggio di percezione in base alla rotazione dell'UMA
-                Vector3 forwardDirection = umaTransform.forward;
-
-                // Lunghezza massima del raggio di percezione
-                float perceptionDistance = 2f;
-
-                // Lancio del raggio di percezione
-                RaycastHit hit;
-                if (Physics.Raycast(umaTransform.position, forwardDirection, out hit, perceptionDistance))
+                if (otherUMATransform != umaTransform)
                 {
-                    // Controlla se l'oggetto colpito è un UMA
-                    if (hit.collider.CompareTag("Player") && animator.GetBool("IsInjury") == false)
-                    {
-                        // Calcola la distanza tra l'UMA corrente e l'UMA colpito dal raggio
-                        float distanceToOtherUMA = Vector3.Distance(umaTransform.position, hit.collider.transform.position);
+                    // Calcola il vettore dalla posizione dell'UMA corrente all'altro UMA
+                    Vector3 toOtherUMA = otherUMATransform.position - umaTransform.position;
 
-                    float targetSpeed = Mathf.Lerp(maxSpeedWalk, medSpeedRun, distanceToOtherUMA / 2.0f); // Regola i valori di Lerp in base alla distanza minima desiderata
-                    navMeshAgent.speed = targetSpeed * 3; // Imposta la velocità dell'UMA
-                    animator.SetFloat("Speed", targetSpeed);
+                    // Calcola l'angolo tra il vettore forward dell'UMA corrente e il vettore toOtherUMA
+                    float angle = Vector3.Angle(umaTransform.forward, toOtherUMA);
+
+                    // Filtra gli UMA basati sull'angolo per includere solo quelli posizionati davanti all'UMA corrente
+                    if (angle < 50f) // Ad esempio, considera solo gli UMA posizionati entro un angolo di 90 gradi rispetto all'UMA corrente
+                    {
+                        // Calcola la distanza tra l'UMA corrente e l'altro UMA
+                        float distance = toOtherUMA.magnitude;
+                        distancesToFrontUMAs.Add(distance);
                     }
                 }
-                else if(animator.GetBool("IsInjury") == false)
-            {
-                    // Se il raggio non colpisce nulla, ripristina la velocità dell'UMA
-                    animator.SetFloat("Speed", maxSpeedRun);
-                    navMeshAgent.speed = maxSpeedRun * 2;// Assumi che originalSpeed sia la velocità originale dell'UMA prima di applicare eventuali rallentamenti
-                }
-
             }
+
+            // Calcola la distanza minima dagli altri UMA posizionati davanti
+            float minDistanceToFrontUMAs = distancesToFrontUMAs.Count > 0 ? distancesToFrontUMAs.Min() : Mathf.Infinity;
+
+            // Se la distanza minima è inferiore a un certo valore, rallenta l'UMA
+            if (minDistanceToFrontUMAs <= 0.4f && animator.GetBool("IsInjury") == false) // Imposta il valore appropriato
+            {
+                float targetSpeed = Mathf.Lerp(medSpeedWalk, maxSpeedWalk, minDistanceToFrontUMAs / 2.0f); // Regola i valori di Lerp in base alla distanza minima desiderata
+                navMeshAgent.speed = targetSpeed * 3; // Imposta la velocità dell'UMA
+                animator.SetFloat("Speed", targetSpeed); // Imposta la velocità dell'animator
+            }
+            else if (minDistanceToFrontUMAs > 0.4f && minDistanceToFrontUMAs<= 0.6f && animator.GetBool("IsInjury") == false)
+            {
+                float targetSpeed = Mathf.Lerp(maxSpeedWalk, minSpeedRun, minDistanceToFrontUMAs / 2.0f); // Regola i valori di Lerp in base alla distanza minima desiderata
+                navMeshAgent.speed = targetSpeed * 3; // Imposta la velocità dell'UMA
+                animator.SetFloat("Speed", targetSpeed); // Imposta la velocità dell'animator
+            }
+            else if (minDistanceToFrontUMAs > 0.6f && minDistanceToFrontUMAs <= 1f && animator.GetBool("IsInjury") == false)
+            {
+                float targetSpeed = Mathf.Lerp(minSpeedRun, medSpeedRun, minDistanceToFrontUMAs / 2.0f); // Regola i valori di Lerp in base alla distanza minima desiderata
+                navMeshAgent.speed = targetSpeed * 3; // Imposta la velocità dell'UMA
+                animator.SetFloat("Speed", targetSpeed); // Imposta la velocità dell'animator
+            }
+            else if (minDistanceToFrontUMAs > 1f && animator.GetBool("IsInjury") == false)
+            {
+                float targetSpeed = Mathf.Lerp(medSpeedRun, maxSpeedRun, minDistanceToFrontUMAs / 2.0f ); // Regola i valori di Lerp in base alla distanza minima desiderata
+                navMeshAgent.speed = targetSpeed * 3; // Imposta la velocità dell'UMA
+                animator.SetFloat("Speed", targetSpeed); // Imposta la velocità dell'animator
+            }
+        }
+
     }
 
 
@@ -353,6 +382,8 @@ public class MovimentoCorsaAlClick : MonoBehaviour
             foreach (Transform umaTransform in allUMATransforms)
             {
                 Animator animator = umaTransform.GetComponent<Animator>();
+                
+
                 // Lista per memorizzare le distanze tra l'UMA corrente e gli altri UMA
                 List<Transform> nearbyUMAs = new List<Transform>();
 
@@ -389,6 +420,8 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                         animator.SetBool("IsStumple", true);
                         navMeshAgent.ResetPath();
                         PermessoInciampo = true;
+                        
+                        
                     }
                     if (randomNumber == 1)
                     {
@@ -398,7 +431,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
                             animator.SetTrigger("InjuryRun");
                             animator.SetBool("IsInjury", true);
                             animator.SetFloat("Speed", 0.3f);
-                            navMeshAgent.speed = 0.35f * 3;
+                            navMeshAgent.speed = 0.35f * 4;
                         }
                         else
                         {
