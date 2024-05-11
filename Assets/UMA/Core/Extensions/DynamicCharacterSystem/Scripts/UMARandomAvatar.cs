@@ -98,6 +98,7 @@ namespace UMA
                 // Aggiungi il componente NavMeshAgent e assicurati che sia attivo
                 NavMeshAgent navMeshAgent = go.AddComponent<NavMeshAgent>();
                 navMeshAgent.enabled = true;
+				
             }
 
             Randomize(RandomAvatar);
