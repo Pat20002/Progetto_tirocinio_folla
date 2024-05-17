@@ -17,7 +17,7 @@ public class MovimentoCorsaAlClick : MonoBehaviour
     float medSpeedWalk = 1.45f;
     float maxSpeedWalk = 1.6f;
     bool CliccatoTastoDestro = false;
-    float maxSpeedRun = 5.5f;
+    float maxSpeedRun = 5.3f;
     float medSpeedRun = 4.5f;
     float minSpeedRun = 3f;
     float counterInciampo = 0f;
