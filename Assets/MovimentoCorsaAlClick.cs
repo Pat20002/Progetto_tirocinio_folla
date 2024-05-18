@@ -25,7 +25,20 @@ public class MovimentoCorsaAlClick : MonoBehaviour
 
     void Start()
     {
+        if (umaRandomAvatar == null)
+        {
+            Debug.LogError("UMARandomAvatar non è assegnato.");
+            return;
+        }
 
+        // Recupera i valori dalla classe statica o da PlayerPrefs
+        int gridXSize = GridSizeData.GridXSize;
+        int gridZSize = GridSizeData.GridZSize;
+
+        // Aggiorna i valori nel componente UMARandomAvatar
+        umaRandomAvatar.GridXSize = gridXSize;
+        umaRandomAvatar.GridZSize = gridZSize;
+        Debug.Log($"Grid size updated to X: {gridXSize}, Z: {gridZSize}");
     }
 
     void Update()
